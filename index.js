@@ -62,12 +62,13 @@ wormhole.prototype.setupSocketListeners = function() {
 	var self = this;
 	//Original func
 	this.socket.on("isWormhole", function (cb) {
-		cb(null, true);
+		cb && cb(null, true);
 		self.syncFunctions();
 	});
 	this.socket.on("disconnect", function () {
 		self.removeAllListeners();
 	});
+	this.socket.on("functions", __addClientFunctions__);
 	this.socket.on("rpc", function (signature) {
 		var args = [].slice.call(data);
 		args.shift();
@@ -114,6 +115,11 @@ wormhole.prototype.__addClientFunction__ = function(func) {
 		var args = ["rpc", func].concat([].slice.call(arguments));
 		self.socket.emit.apply(self, args);
 	};
+};
+wormhole.prototype.__addClientFunctions__ = function (arr) {
+	for (var i = 0; i < arr.length; i++) {
+		this.__addClientFunction__(arr[i]);
+	}
 };
 wormhole.prototype.__changes__ = function(hash) {
 	var out = [];
