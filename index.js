@@ -8,6 +8,8 @@ var wormhole = function (socket) {
 	this._availablerpc = {};
 	this.rpc = {};
 
+	this.__hashes__ = [];
+
 	this.__hash__ = "";
 };
 wormhole.prototype.__proto__ = events.EventEmitter.prototype;
@@ -55,10 +57,17 @@ wormhole.prototype.setupSocketListeners = function() {
 wormhole.prototype.addFunction = function(func, cb) {
 	this._availablerpc[func] = cb;
 	var str = Object.keys(this._availablerpc).join("");
+	// Simple RPC versioning.
 	this.__hash__ = new Buffer(str).toString('base64');
+	this.__hashes__.push({hash: this.__hash__, name: func});
 };
-wormhole.prototype.syncFunctions = function() {
-	this.socket.emit("functions", Object.keys(this._availablerpc));
+wormhole.prototype.syncFunctions = function(__oldHash__) {
+	if (__oldHash__) {
+		var changes = this.__changes__(__oldHash__);
+		this.socket.emit("functions", changes);
+	} else {
+		this.socket.emit("functions", Object.keys(this._availablerpc));
+	}
 };
 wormhole.prototype.addClientFunction = function(func) {
 	var self = this;
@@ -66,5 +75,17 @@ wormhole.prototype.addClientFunction = function(func) {
 		var args = ["rpc", func].concat([].slice.call(arguments));
 		self.socket.emit.apply(self, args);
 	};
+};
+wormhole.prototype.__changes__ = function(hash) {
+	var out = [];
+	var keys = Object.keys(this.__hashes__);
+	for (var i = keys.length; i >= 0; i--) {
+		// Reverse traverse, most likely they'll have a more-or-less up to date stash.
+		if (keys[i].hash === hash) {
+			out.push(keys[i].name)
+			break;
+		}
+	}
+	return out;
 };
 module.exports = wormhole;
