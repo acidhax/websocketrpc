@@ -11,7 +11,7 @@ var wormhole = function (socket) {
 	this.__hashes__ = [];
 	this.__hash__ = "";
 
-	this.addFunctions(wormhole.builder.__rpcFunctions);
+	this.addFunctions(wormhole.global.__rpcFunctions);
 };
 wormhole.prototype.__proto__ = events.EventEmitter.prototype;
 wormhole.prototype.setSocket = function(socket) {
@@ -145,5 +145,5 @@ wormholeBuilder.prototype.setFunctions = function (obj) {
 	}
 };
 var builder = new wormholeBuilder();
-wormhole.builder = builder;
+wormhole.global = builder;
 module.exports = wormhole;
