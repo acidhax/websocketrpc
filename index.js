@@ -33,9 +33,7 @@ wormhole.prototype.isWormhole = function(cb) {
 };
 wormhole.prototype.setupListeners = function() {
 	var self = this;
-	this.on("outofsync", function (hash) {
-		self.syncFunctions(hash);
-	});
+	this.on("outofsync", self.syncFunctions);
 	this.on("newListener", function (event, func) {
 		if (event != "removeListener" && event != "newListener") {
 			// Oh, this is an RPC, Add the fucker!
@@ -50,7 +48,9 @@ wormhole.prototype.setupSocketListeners = function() {
 		cb(null, true);
 		self.syncFunctions();
 	});
-
+	this.socket.on("disconnect", function () {
+		self.removeAllListeners();
+	});
 	this.socket.on("rpc", function (data) {
 		if (data.__hash__ != self.__hash__) {
 			self.emit("outofsync", data.__hash__);
