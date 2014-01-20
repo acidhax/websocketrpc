@@ -85,9 +85,9 @@ wormhole.prototype.__changes__ = function(hash) {
 	for (var i = keys.length; i >= 0; i--) {
 		// Reverse traverse, most likely they'll have a more-or-less up to date stash.
 		if (keys[i].hash === hash) {
-			out.push(keys[i].name)
 			break;
 		}
+		out.push(keys[i].name);
 	}
 	return out;
 };
