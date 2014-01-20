@@ -20,12 +20,13 @@ wormhole.prototype.setSocket = function(socket) {
 	this.setupSocketListeners();
 };
 wormhole.prototype.isWormhole = function(cb) {
+	var self = this;
 	if (this.isWormhole === null) {
 		this.socket.emit("isWormhole", function (err, isWormhole) {
 			if (!err) {
-				this.isWormhole = isWormhole;
+				self.isWormhole = isWormhole;
 			} else {
-				this.isWormhole = !!isWormhole;
+				self.isWormhole = !!isWormhole;
 			}
 		});
 	} else {
@@ -35,6 +36,21 @@ wormhole.prototype.isWormhole = function(cb) {
 wormhole.prototype.setupListeners = function() {
 	var self = this;
 	this.on("outofsync", self.syncFunctions);
+	this.on("rpc", function () {
+		var args = [].slice.call(arguments);
+		var func = args.shift();
+		var cb;
+		if (typeof args[args.length-1] == "function") {
+			// It's a callback function.
+			// We may need to callback a timeout.
+			cb = args[args.length-1];
+		}
+		if (self._availablerpc[func]) {
+			self._availablerpc[func].apply(self, args);
+		} else {
+			cb && cb("nosuchmethod", func);
+		}
+	});
 	this.on("newListener", function (event, func) {
 		if (event != "removeListener" && event != "newListener") {
 			// Oh, this is an RPC, Add the fucker!
@@ -52,9 +68,23 @@ wormhole.prototype.setupSocketListeners = function() {
 	this.socket.on("disconnect", function () {
 		self.removeAllListeners();
 	});
-	this.socket.on("rpc", function (data) {
-		if (data.__hash__ != self.__hash__) {
-			self.emit("outofsync", data.__hash__);
+	this.socket.on("rpc", function (signature) {
+		var args = [].slice.call(data);
+		args.shift();
+		var cb;
+		if (typeof args[args.length-1] == "function") {
+			// It's a callback function.
+			// We may need to callback a timeout.
+			cb = args[args.length-1];
+		}
+		if (signature && signature.__hash__) {
+			// It's a wormhole rpc signature.
+			if (signature.__hash__ != self.__hash__) {
+				self.emit("outofsync", signature.__hash__);
+				cb && cb("outofsync");
+			} else {
+				self.emit.apply(self, ["rpc"].concat(args));
+			}
 		}
 	});
 };
