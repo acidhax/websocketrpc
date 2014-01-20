@@ -9,8 +9,9 @@ var wormhole = function (socket) {
 	this.rpc = {};
 
 	this.__hashes__ = [];
-
 	this.__hash__ = "";
+
+	this.addFunctions(wormhole.builder.__rpcFunctions);
 };
 wormhole.prototype.__proto__ = events.EventEmitter.prototype;
 wormhole.prototype.setSocket = function(socket) {
@@ -64,6 +65,11 @@ wormhole.prototype.addFunction = function(func, cb) {
 	this.__hash__ = new Buffer(str).toString('base64');
 	this.__hashes__.push({hash: this.__hash__, name: func});
 };
+wormhole.prototype.addFunctions = function (obj) {
+	for (var i in obj) {
+		this.addFunction(i, obj[i]);
+	}
+};
 wormhole.prototype.syncFunctions = function(oldhash) {
 	if (oldhash) {
 		var changes = this.__changes__(oldhash);
@@ -72,7 +78,7 @@ wormhole.prototype.syncFunctions = function(oldhash) {
 		this.socket.emit("functions", Object.keys(this._availablerpc));
 	}
 };
-wormhole.prototype.addClientFunction = function(func) {
+wormhole.prototype.__addClientFunction__ = function(func) {
 	var self = this;
 	this.rpc[func] = function () {
 		var args = ["rpc", func].concat([].slice.call(arguments));
@@ -91,4 +97,17 @@ wormhole.prototype.__changes__ = function(hash) {
 	}
 	return out;
 };
+
+var wormholeBuilder = function () {
+	this.__rpcFunctions = {};
+};
+
+// Use me to store access to functions available to every wormhole client.
+wormholeBuilder.prototype.setFunctions = function (obj) {
+	for (var i in obj) {
+		this.__rpcFunctions[i] = obj[i];
+	}
+};
+var builder = new wormholeBuilder();
+wormhole.builder = builder;
 module.exports = wormhole;
