@@ -131,7 +131,7 @@ wormhole.prototype.__changes__ = function(hash) {
 		}
 		out.push(keys[i].name);
 	}
-	return out;
+	return out.reverse();
 };
 
 var wormholeBuilder = function () {
